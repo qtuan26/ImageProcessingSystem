@@ -233,7 +233,6 @@ func start
 
 ## 📝 Ghi chú
 
-- Hệ thống chạy hoàn toàn **local** với Azurite — không cần tài khoản Azure thực
 - Quota mặc định: **100 ảnh/ngày** (reset khi restart `func start`)
 - File `local.settings.json` đã được thêm vào `.gitignore`, **không commit** file này
 - Để deploy lên Azure Cloud thực tế, thay `UseDevelopmentStorage=true` bằng connection string thật từ Azure Portal
