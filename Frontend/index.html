@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Image Processing System – Serverless Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0d0f14;--surface:#141720;--card:#1a1e2a;--border:#2a2f3e;
+  --accent:#4f8ef7;--accent2:#7c5af5;--success:#2ecc8a;--warn:#f5a623;--danger:#f55a6a;
+  --text:#e8ecf4;--muted:#6b7494;
+  --mono:'JetBrains Mono',monospace;--sans:'Sora',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh;}
+
+.page{max-width:940px;margin:0 auto;padding:28px 20px 60px;}
+
+/* ── Header ── */
+.header{text-align:center;padding:36px 0 28px;}
+.header-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.3);color:var(--accent);font-size:11px;font-family:var(--mono);letter-spacing:.08em;padding:4px 14px;border-radius:100px;margin-bottom:18px;text-transform:uppercase;}
+.pulse{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s ease-in-out infinite;flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.65);}}
+h1{font-size:30px;font-weight:700;background:linear-gradient(135deg,#e8ecf4 0%,#4f8ef7 55%,#7c5af5 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;letter-spacing:-.5px;}
+.subtitle{color:var(--muted);font-size:13px;}
+
+/* ── Section wrapper ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px 24px;margin-bottom:20px;position:relative;}
+.section-title{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.section-title::before,.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── Architecture pipeline ── */
+.arch-label{position:absolute;top:14px;right:18px;font-family:var(--mono);font-size:9px;color:var(--border);letter-spacing:.15em;text-transform:uppercase;}
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;row-gap:12px;}
+.arch-node{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 10px;background:var(--card);border:1px solid var(--border);border-radius:12px;min-width:88px;text-align:center;cursor:pointer;transition:border-color .2s,transform .15s,box-shadow .2s;}
+.arch-node:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 24px rgba(79,142,247,.12);}
+.arch-node.active{border-color:var(--accent);box-shadow:0 0 18px rgba(79,142,247,.25);}
+.arch-icon{font-size:22px;line-height:1;}
+.arch-name{font-size:11px;font-weight:600;color:var(--text);}
+.arch-sub{font-size:9px;font-family:var(--mono);color:var(--muted);line-height:1.4;}
+.arch-arrow{display:flex;align-items:center;padding:0 3px;color:var(--muted);}
+.arch-arrow svg{width:18px;height:18px;}
+
+/* ── Upload zone ── */
+.config-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.config-group{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.config-label{font-size:10px;font-family:var(--mono);color:var(--muted);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;}
+.tag{display:inline-flex;align-items:center;gap:4px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.25);color:var(--accent);font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:6px;margin:2px 2px 0 0;}
+.wm-input{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;width:100%;padding:4px 0;margin-top:4px;outline:none;transition:border-color .2s;}
+.wm-input:focus{border-color:var(--accent);}
+
+.dropzone{border:2px dashed var(--border);border-radius:12px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:14px;}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:rgba(79,142,247,.04);}
+.dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dz-icon{font-size:34px;margin-bottom:10px;}
+.dz-text{font-size:13px;font-weight:500;}
+.dz-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+.preview-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.img-preview{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;min-height:150px;display:flex;flex-direction:column;}
+.img-label{font-size:10px;font-family:var(--mono);color:var(--muted);padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.img-label .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.img-body{flex:1;display:flex;align-items:center;justify-content:center;padding:12px;min-height:120px;}
+.img-body img{max-width:100%;max-height:150px;border-radius:6px;object-fit:contain;}
+.img-placeholder{color:var(--muted);font-size:11px;text-align:center;font-family:var(--mono);}
+
+.btn-upload{width:100%;padding:13px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-family:var(--sans);font-weight:600;font-size:14px;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.01em;}
+.btn-upload:hover:not(:disabled){opacity:.88;}
+.btn-upload:active:not(:disabled){transform:scale(.993);}
+.btn-upload:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── Progress steps ── */
+.steps{display:flex;align-items:center;margin-bottom:18px;overflow-x:auto;padding-bottom:4px;}
+.step{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:76px;flex-shrink:0;}
+.step-circle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;border:1.5px solid var(--border);color:var(--muted);background:var(--card);transition:all .35s;font-family:var(--mono);}
+.step.done .step-circle{background:var(--success);border-color:var(--success);color:#fff;}
+.step.active .step-circle{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 14px rgba(79,142,247,.45);animation:stepPulse 1s ease-in-out infinite alternate;}
+@keyframes stepPulse{from{box-shadow:0 0 8px rgba(79,142,247,.3);}to{box-shadow:0 0 20px rgba(79,142,247,.6);}}
+.step-label{font-size:9px;color:var(--muted);text-align:center;font-family:var(--mono);line-height:1.35;transition:color .3s;}
+.step.done .step-label,.step.active .step-label{color:var(--text);}
+.step-line{flex:1;height:1.5px;background:var(--border);transition:background .4s;min-width:12px;flex-shrink:1;}
+.step-line.done{background:var(--success);}
+
+/* ── Log panel ── */
+.log-panel{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;padding-right:4px;}
+.log-panel::-webkit-scrollbar{width:4px;}
+.log-panel::-webkit-scrollbar-track{background:transparent;}
+.log-panel::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.log-entry{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid transparent;font-size:12px;font-family:var(--mono);animation:slideIn .3s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:translateX(0);}}
+.log-entry.info{background:rgba(79,142,247,.06);border-color:rgba(79,142,247,.14);}
+.log-entry.success{background:rgba(46,204,138,.06);border-color:rgba(46,204,138,.14);}
+.log-entry.warn{background:rgba(245,166,35,.06);border-color:rgba(245,166,35,.14);}
+.log-entry.process{background:rgba(124,90,245,.06);border-color:rgba(124,90,245,.14);}
+.log-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+.log-time{color:var(--muted);font-size:10px;flex-shrink:0;padding-top:1px;min-width:38px;}
+.log-msg{color:var(--text);flex:1;line-height:1.55;word-break:break-all;}
+.log-msg span{color:var(--accent);}
+
+/* ── Stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px;}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.stat-num{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--text);}
+.stat-label{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono);}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--success);border-radius:12px;padding:13px 18px;font-size:12px;font-family:var(--mono);color:var(--success);max-width:340px;transform:translateY(80px);opacity:0;transition:all .35s cubic-bezier(.34,1.56,.64,1);z-index:999;line-height:1.5;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+/* ── Responsive ── */
+@media(max-width:600px){
+  .config-row,.preview-row,.stats-row{grid-template-columns:1fr;}
+  h1{font-size:22px;}
+  .arch-flow{gap:4px;}
+  .arch-node{min-width:70px;padding:10px 6px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge"><div class="pulse"></div>Azure Functions · Serverless Architecture</div>
+    <h1>Image Processing System</h1>
+    <p class="subtitle">Azure Blob Storage · Table Storage · Queue Storage · SixLabors ImageSharp · .NET Isolated Worker</p>
+  </div>
+
+  <!-- Architecture -->
+  <div class="card">
+    <span class="arch-label">ARCHITECTURE</span>
+    <div class="section-title">Event-driven pipeline</div>
+    <div class="arch-flow" id="archFlow">
+      <div class="arch-node" id="n0" onclick="highlightNode(0)" title="Upload ảnh lên Azure Blob Storage">
+        <div class="arch-icon">🖼️</div>
+        <div class="arch-name">Upload</div>
+        <div class="arch-sub">HTML · PUT<br>Blob SAS</div>
+      </div>
+      <div class="arch-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node" id="n1" onclick="highlightNode(1)" title="BlobTrigger kích hoạt ProcessImage function">
+        <div class="arch-icon">⚡</div>
+        <div class="arch-name">ProcessImage</div>
+        <div class="arch-sub">BlobTrigger<br>Function</div>
+      </div>
+      <div class="arch-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node" id="n2" onclick="highlightNode(2)" title="Resize ảnh và chèn watermark bằng ImageSharp">
+        <div class="arch-icon">🗜️</div>
+        <div class="arch-name">Resize + WM</div>
+        <div class="arch-sub">400px max<br>ImageSharp</div>
+      </div>
+      <div class="arch-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node" id="n3" onclick="highlightNode(3)" title="Lưu thumbnail vào container thumbnails/">
+        <div class="arch-icon">🪣</div>
+        <div class="arch-name">Thumbnails</div>
+        <div class="arch-sub">BlobOutput<br>Binding</div>
+      </div>
+      <div class="arch-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node" id="n4" onclick="highlightNode(4)" title="Ghi log vào Azure Table Storage">
+        <div class="arch-icon">📋</div>
+        <div class="arch-name">ImageLogs</div>
+        <div class="arch-sub">TableOutput<br>Binding</div>
+      </div>
+      <div class="arch-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="arch-node" id="n5" onclick="highlightNode(5)" title="QueueTrigger kích hoạt SendNotification function">
+        <div class="arch-icon">📨</div>
+        <div class="arch-name">Notification</div>
+        <div class="arch-sub">QueueTrigger<br>Function</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="section-title">Upload ảnh</div>
+
+    <div class="config-row">
+      <div class="config-group">
+        <div class="config-label">Watermark text</div>
+        <input class="wm-input" id="wmText" value="Tuan - Serverless Demo" maxlength="50" placeholder="Nhập watermark..."/>
+      </div>
+      <div class="config-group">
+        <div class="config-label">Cấu hình xử lý</div>
+        <div style="margin-top:6px;">
+          <span class="tag">400px max-width</span>
+          <span class="tag">JPEG output</span>
+          <span class="tag">Bold · WhiteSmoke</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dropzone" id="dropzone"
+      ondragover="onDrag(event,true)"
+      ondragleave="onDrag(event,false)"
+      ondrop="onDrop(event)">
+      <input type="file" id="fileInput" accept="image/*" onchange="onFile(this.files[0])"/>
+      <div class="dz-icon">☁️</div>
+      <div class="dz-text">Kéo thả ảnh vào đây hoặc click để chọn file</div>
+      <div class="dz-sub">PNG · JPG · WebP · GIF — Tối đa 10MB</div>
+    </div>
+
+    <div class="preview-row">
+      <div class="img-preview">
+        <div class="img-label">
+          <div class="dot" style="background:#f55a6a;"></div>
+          ORIGINAL
+        </div>
+        <div class="img-body" id="origBody">
+          <div class="img-placeholder">Chưa chọn ảnh</div>
+        </div>
+      </div>
+      <div class="img-preview">
+        <div class="img-label">
+          <div class="dot" style="background:#2ecc8a;"></div>
+          PROCESSED (mô phỏng client-side)
+        </div>
+        <div class="img-body" id="procBody">
+          <div class="img-placeholder">Sẽ hiện sau khi upload</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-upload" id="btnUpload" onclick="doUpload()" disabled>
+      ⚡&nbsp;&nbsp;Upload &amp; Trigger Azure Function
+    </button>
+  </div>
+
+  <!-- Pipeline status -->
+  <div class="card">
+    <div class="section-title">Trạng thái pipeline</div>
+
+    <!-- Steps -->
+    <div class="steps" id="stepsBar">
+      <div class="step" id="s0"><div class="step-circle">1</div><div class="step-label">Upload<br>Blob</div></div>
+      <div class="step-line" id="sl0"></div>
+      <div class="step" id="s1"><div class="step-circle">2</div><div class="step-label">Blob<br>Trigger</div></div>
+      <div class="step-line" id="sl1"></div>
+      <div class="step" id="s2"><div class="step-circle">3</div><div class="step-label">Resize<br>+WM</div></div>
+      <div class="step-line" id="sl2"></div>
+      <div class="step" id="s3"><div class="step-circle">4</div><div class="step-label">Save<br>Thumb</div></div>
+      <div class="step-line" id="sl3"></div>
+      <div class="step" id="s4"><div class="step-circle">5</div><div class="step-label">Log<br>Table</div></div>
+      <div class="step-line" id="sl4"></div>
+      <div class="step" id="s5"><div class="step-circle">6</div><div class="step-label">Queue<br>Notify</div></div>
+    </div>
+
+    <!-- Log panel -->
+    <div class="log-panel" id="logPanel">
+      <div class="log-entry info">
+        <span class="log-icon">ℹ️</span>
+        <span class="log-time">00:00</span>
+        <span class="log-msg">System ready · Azurite emulator <span>127.0.0.1:10000</span></span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="statCount">0</div>
+        <div class="stat-label">ảnh đã xử lý</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statSize">—</div>
+        <div class="stat-label">kích thước gốc</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statRes">—</div>
+        <div class="stat-label">resolution sau resize</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast">📬 Notification sent!</div>
+
+<script>
+/* ─── State ─── */
+let selectedFile = null;
+let processCount = 0;
+let t0 = null;
+
+/* ─── Helpers ─── */
+function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function ts(){
+  if(!t0) return '00:00';
+  const e = Date.now() - t0;
+  const m = String(Math.floor(e / 60000)).padStart(2,'0');
+  const s = String(Math.floor((e % 60000) / 1000)).padStart(2,'0');
+  return m + ':' + s;
+}
+
+function fmtSize(bytes){
+  if(bytes >= 1048576) return (bytes/1048576).toFixed(1) + 'MB';
+  return (bytes/1024).toFixed(0) + 'KB';
+}
+
+function addLog(icon, type, html){
+  const panel = document.getElementById('logPanel');
+  const d = document.createElement('div');
+  d.className = 'log-entry ' + type;
+  d.innerHTML = `<span class="log-icon">${icon}</span><span class="log-time">${ts()}</span><span class="log-msg">${html}</span>`;
+  panel.appendChild(d);
+  d.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function setStep(idx, state){
+  const el = document.getElementById('s' + idx);
+  if(!el) return;
+  el.className = 'step ' + (state || '');
+  if(state === 'done'){
+    const line = document.getElementById('sl' + idx);
+    if(line) line.className = 'step-line done';
+  }
+}
+
+function resetSteps(){
+  for(let i = 0; i < 6; i++){
+    const s = document.getElementById('s' + i);
+    if(s) s.className = 'step';
+    const l = document.getElementById('sl' + i);
+    if(l) l.className = 'step-line';
+  }
+}
+
+function highlightNode(i){
+  for(let j = 0; j < 6; j++){
+    const n = document.getElementById('n' + j);
+    if(n) n.classList.remove('active');
+  }
+  const n = document.getElementById('n' + i);
+  if(n) n.classList.add('active');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4500);
+}
+
+/* ─── Drag & Drop ─── */
+function onDrag(e, active){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.toggle('drag', active);
+}
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(f) onFile(f);
+}
+
+/* ─── File selected ─── */
+function onFile(f){
+  if(!f || !f.type.startsWith('image/')) return;
+  selectedFile = f;
+
+  // Show original preview
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    document.getElementById('origBody').innerHTML =
+      `<img src="${ev.target.result}" alt="original"/>`;
+    simulateProcess(ev.target.result);
+  };
+  reader.readAsDataURL(f);
+
+  document.getElementById('statSize').textContent = fmtSize(f.size);
+  document.getElementById('btnUpload').disabled = false;
+}
+
+/* ─── Canvas simulation of resize + watermark ─── */
+function simulateProcess(src){
+  const img = new Image();
+  img.onload = function(){
+    const MAX = 400;
+    let w = img.width, h = img.height;
+    if(w > MAX){ h = Math.round(h * MAX / w); w = MAX; }
+
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+
+    // Watermark
+    const wm = document.getElementById('wmText').value || 'Serverless Demo';
+    ctx.font = 'bold 14px monospace';
+    ctx.shadowColor = 'rgba(0,0,0,.6)';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = 'rgba(255,255,245,0.88)';
+    ctx.fillText(wm, 10, 26);
+
+    document.getElementById('procBody').innerHTML =
+      `<img src="${cv.toDataURL('image/jpeg', .88)}" alt="processed"/>`;
+    document.getElementById('statRes').textContent = w + '×' + h;
+  };
+  img.src = src;
+}
+
+/* ─── Main upload & simulate pipeline ─── */
+async function doUpload(){
+  if(!selectedFile) return;
+  t0 = Date.now();
+
+  document.getElementById('btnUpload').disabled = true;
+  document.getElementById('logPanel').innerHTML = '';
+  resetSteps();
+
+  const name = selectedFile.name;
+
+  /* ── STEP 1: Upload to Blob ── */
+  setStep(0, 'active'); highlightNode(0);
+  addLog('🚀', 'info', `Bắt đầu upload: <span>${name}</span>`);
+  await delay(500);
+
+  // ─── ĐỔI SAS TOKEN Ở ĐÂY KHI HẾT HẠN ───────────────────────────────────
+  const BASE_URL   = "http://127.0.0.1:10000/devstoreaccount1/uploads";
+  const SAS_TOKEN  = "sv=2018-03-28&spr=https%2Chttp&st=2026-04-26T04%3A43%3A46Z&se=2026-04-27T04%3A43%3A46Z&sr=c&sp=rcwl&sig=fgtNsq3%2Bj5vmrVrWSpRJcRLyP7Ik8K8rOSfTo73bIjA%3D";
+  // ────────────────────────────────────────────────────────────────────────
+
+  const uploadUrl  = `${BASE_URL}/${name}?${SAS_TOKEN}`;
+  let uploadOk = false;
+
+  try{
+    const resp = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': selectedFile.type },
+      body: selectedFile
+    });
+    uploadOk = resp.ok;
+    if(!uploadOk){
+      addLog('⚠️', 'warn', `Server trả về HTTP ${resp.status} — chạy chế độ demo`);
+    }
+  } catch(e){
+    addLog('⚠️', 'warn', `Không kết nối được Azurite — chạy chế độ demo`);
+  }
+
+  if(uploadOk){
+    addLog('✅', 'success', `PUT blob thành công → <span>uploads/${name}</span>`);
+  } else {
+    addLog('🔵', 'info', `[DEMO] Giả lập PUT blob → <span>uploads/${name}</span>`);
+  }
+  setStep(0, 'done');
+
+  /* ── STEP 2: BlobTrigger ── */
+  await delay(750);
+  setStep(1, 'active'); highlightNode(1);
+  addLog('⚡', 'process', `Azure Function <span>ProcessImage</span> được kích hoạt`);
+  addLog('🔍', 'info', `_logger.LogInformation("Đang xử lý ảnh: <span>${name}</span>")`);
+  await delay(700);
+  setStep(1, 'done');
+
+  /* ── STEP 3: Resize + Watermark ── */
+  setStep(2, 'active'); highlightNode(2);
+  addLog('🗜️', 'process', `Image.Load(stream) · ResizeMode.Max → <span>400×auto px</span>`);
+  await delay(500);
+  const wm = document.getElementById('wmText').value || 'Tuan - Serverless Demo';
+  addLog('🖊️', 'process', `DrawText("<span>${wm}</span>") · FontStyle.Bold · Color.WhiteSmoke · PointF(10,10)`);
+  await delay(450);
+  addLog('💾', 'info', `SaveAsJpeg(outputStream) ✓`);
+  setStep(2, 'done');
+
+  /* ── STEP 4: Blob output ── */
+  await delay(400);
+  setStep(3, 'active'); highlightNode(3);
+  addLog('🪣', 'success', `[BlobOutput] Thumbnail → <span>thumbnails/${name}</span>`);
+  setStep(3, 'done');
+
+  /* ── STEP 5: Table log ── */
+  await delay(350);
+  setStep(4, 'active'); highlightNode(4);
+  const rowKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID().slice(0,8)
+    : Math.random().toString(36).slice(2,10);
+  addLog('📋', 'success', `[TableOutput] ImageLogs · PartitionKey=<span>Images</span> · RowKey=<span>${rowKey}</span>`);
+  addLog('📐', 'info', `FileName=<span>${name}</span> · Resolution=<span>${document.getElementById('statRes').textContent}</span> · Status=<span>Processed</span>`);
+  setStep(4, 'done');
+
+  /* ── STEP 6: Queue + Notification ── */
+  await delay(400);
+  setStep(5, 'active'); highlightNode(5);
+  addLog('📨', 'success', `[QueueOutput] Message → <span>notification-queue</span>`);
+  await delay(600);
+  addLog('📬', 'warn', `Function <span>SendNotification</span> kích hoạt từ QueueTrigger`);
+  addLog('─', 'process', `──────────────────────────────────────────`);
+  addLog('📧', 'success', `[EMAIL SERVICE]: Đang gửi thông báo...`);
+  addLog('📝', 'success', `Nội dung: Ảnh <span>${name}</span> đã được watermark &amp; resize thành công!`);
+  addLog('─', 'process', `──────────────────────────────────────────`);
+  setStep(5, 'done');
+
+  /* ── Done ── */
+  processCount++;
+  document.getElementById('statCount').textContent = processCount;
+  document.getElementById('btnUpload').disabled = false;
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  showToast(`📬 Queue notified: ${name} xử lý xong! (${elapsed}s)`);
+}
+</script>
+</body>
+</html>
+<!-- azurite --blobHost 127.0.0.1 --blobPort 10000 --loose   -->
